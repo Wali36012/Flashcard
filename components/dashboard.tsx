@@ -17,7 +17,9 @@ import {
   Calendar,
   Clock,
   TrendingUp,
-  Award
+  Award,
+  Medal,
+  Star
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useDatabase } from "@/hooks/use-db"
@@ -28,6 +30,10 @@ interface Achievement {
   title: string
   description: string
   icon: React.ReactNode
+  category: 'learning' | 'performance' | 'consistency' | 'mastery'
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum'
+  xpReward: number
+  condition: (userProgress: any) => boolean
 }
 
 export default function Dashboard() {
@@ -67,6 +73,185 @@ export default function Dashboard() {
   const xpToNextLevel = currentLevel * 100
   const levelProgress = Math.round((currentXP / xpToNextLevel) * 100)
 
+  // Enhanced achievements with categories and tiers
+  const achievements: Achievement[] = [
+    // Learning Achievements
+    {
+      id: "first_correct",
+      title: "First Steps",
+      description: "Answer your first word correctly",
+      icon: <Medal className="h-6 w-6 text-yellow-500" />,
+      category: 'learning',
+      tier: 'bronze',
+      xpReward: 50,
+      condition: (progress) => progress.correct.length > 0,
+    },
+    {
+      id: "ten_correct",
+      title: "Word Warrior",
+      description: "Answer 10 words correctly",
+      icon: <Award className="h-6 w-6 text-indigo-500" />,
+      category: 'learning',
+      tier: 'silver',
+      xpReward: 100,
+      condition: (progress) => progress.correct.length >= 10,
+    },
+    {
+      id: "learned_20",
+      title: "Vocabulary Builder",
+      description: "Mark 20 words as learned",
+      icon: <BookOpen className="h-6 w-6 text-emerald-500" />,
+      category: 'learning',
+      tier: 'silver',
+      xpReward: 100,
+      condition: (progress) => progress.learned.length >= 20,
+    },
+    {
+      id: "learned_50",
+      title: "Word Master",
+      description: "Mark 50 words as learned",
+      icon: <BookOpen className="h-6 w-6 text-emerald-500" />,
+      category: 'learning',
+      tier: 'gold',
+      xpReward: 200,
+      condition: (progress) => progress.learned.length >= 50,
+    },
+    {
+      id: "learned_100",
+      title: "Vocabulary Legend",
+      description: "Mark 100 words as learned",
+      icon: <BookOpen className="h-6 w-6 text-emerald-500" />,
+      category: 'learning',
+      tier: 'platinum',
+      xpReward: 500,
+      condition: (progress) => progress.learned.length >= 100,
+    },
+
+    // Performance Achievements
+    {
+      id: "perfect_score",
+      title: "Perfect Score",
+      description: "Get a perfect score on any test",
+      icon: <Star className="h-6 w-6 text-yellow-500" />,
+      category: 'performance',
+      tier: 'bronze',
+      xpReward: 50,
+      condition: (progress) => progress.testHistory.some((test: any) => test.score === test.totalPossible),
+    },
+    {
+      id: "high_accuracy",
+      title: "Accuracy Expert",
+      description: "Maintain 90% accuracy across 10 tests",
+      icon: <Brain className="h-6 w-6 text-blue-500" />,
+      category: 'performance',
+      tier: 'gold',
+      xpReward: 200,
+      condition: (progress) => {
+        const recentTests = progress.testHistory.slice(-10);
+        return recentTests.length >= 10 && 
+               recentTests.every((test: any) => (test.score / test.totalPossible) >= 0.9);
+      },
+    },
+
+    // Consistency Achievements
+    {
+      id: "streak_3",
+      title: "Consistent Scholar",
+      description: "Maintain a 3-day streak",
+      icon: <Flame className="h-6 w-6 text-orange-500" />,
+      category: 'consistency',
+      tier: 'bronze',
+      xpReward: 50,
+      condition: (progress) => progress.streakDays >= 3,
+    },
+    {
+      id: "streak_7",
+      title: "Dedicated Learner",
+      description: "Maintain a 7-day streak",
+      icon: <Flame className="h-6 w-6 text-orange-500" />,
+      category: 'consistency',
+      tier: 'silver',
+      xpReward: 100,
+      condition: (progress) => progress.streakDays >= 7,
+    },
+    {
+      id: "streak_30",
+      title: "Learning Legend",
+      description: "Maintain a 30-day streak",
+      icon: <Flame className="h-6 w-6 text-orange-500" />,
+      category: 'consistency',
+      tier: 'platinum',
+      xpReward: 500,
+      condition: (progress) => progress.streakDays >= 30,
+    },
+
+    // Mastery Achievements
+    {
+      id: "level_5",
+      title: "Rising Star",
+      description: "Reach level 5",
+      icon: <Star className="h-6 w-6 text-yellow-500" />,
+      category: 'mastery',
+      tier: 'bronze',
+      xpReward: 50,
+      condition: (progress) => progress.level >= 5,
+    },
+    {
+      id: "level_10",
+      title: "Master Learner",
+      description: "Reach level 10",
+      icon: <Star className="h-6 w-6 text-yellow-500" />,
+      category: 'mastery',
+      tier: 'silver',
+      xpReward: 100,
+      condition: (progress) => progress.level >= 10,
+    },
+    {
+      id: "level_20",
+      title: "Grand Master",
+      description: "Reach level 20",
+      icon: <Star className="h-6 w-6 text-yellow-500" />,
+      category: 'mastery',
+      tier: 'platinum',
+      xpReward: 500,
+      condition: (progress) => progress.level >= 20,
+    },
+    {
+      id: "all_tests",
+      title: "Test Master",
+      description: "Complete all test types",
+      icon: <Brain className="h-6 w-6 text-blue-500" />,
+      category: 'mastery',
+      tier: 'gold',
+      xpReward: 200,
+      condition: (progress) => {
+        const testTypes = new Set(progress.testHistory.map((test: any) => test.testType));
+        return testTypes.size >= 5; // Assuming 5 different test types
+      },
+    }
+  ];
+
+  // Calculate category-specific statistics
+  const learningStats = {
+    totalWords,
+    learnedWords,
+    completionPercentage,
+    averageTimePerWord: userProgress.totalTimeSpent / learnedWords || 0,
+  };
+
+  const performanceStats = {
+    testAccuracy,
+    totalTests: userProgress.totalTests || 0,
+    averageTestScore: userProgress.totalScore / (userProgress.totalTests || 1),
+    bestStreak: userProgress.bestStreak || 0,
+  };
+
+  const consistencyStats = {
+    currentStreak: userProgress.streakDays || 0,
+    totalDaysActive: userProgress.testHistory.length,
+    averageDailyTests: userProgress.testHistory.length / 30, // Last 30 days
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -99,6 +284,7 @@ export default function Dashboard() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="statistics">Statistics</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
+          <TabsTrigger value="progress">Progress</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -202,80 +388,81 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Learning Stats</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  Learning Stats
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Total Words:</span>
-                  <span className="font-medium">{totalWords}</span>
+                  <span className="font-medium">{learningStats.totalWords}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Words Learned:</span>
-                  <span className="font-medium">{learnedWords}</span>
+                  <span className="font-medium">{learningStats.learnedWords}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Completion:</span>
-                  <span className="font-medium">{completionPercentage}%</span>
+                  <span className="font-medium">{learningStats.completionPercentage}%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Current Streak:</span>
-                  <span className="font-medium">{userProgress.streak || 0} days</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Best Streak:</span>
-                  <span className="font-medium">{userProgress.bestStreak || 0} days</span>
+                  <span className="text-sm">Avg. Time/Word:</span>
+                  <span className="font-medium">{Math.round(learningStats.averageTimePerWord)}s</span>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Test Performance</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5" />
+                  Performance Stats
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Tests Taken:</span>
-                  <span className="font-medium">{userProgress.totalTests || 0}</span>
+                  <span className="font-medium">{performanceStats.totalTests}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Total Score:</span>
-                  <span className="font-medium">{userProgress.totalScore || 0}</span>
+                  <span className="text-sm">Average Score:</span>
+                  <span className="font-medium">{Math.round(performanceStats.averageTestScore)}%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Average Accuracy:</span>
-                  <span className="font-medium">{testAccuracy}%</span>
+                  <span className="text-sm">Best Streak:</span>
+                  <span className="font-medium">{performanceStats.bestStreak} days</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Time Spent:</span>
-                  <span className="font-medium">
-                    {Math.round((userProgress.totalTimeSpent || 0) / 60)} min
-                  </span>
+                  <span className="text-sm">Accuracy:</span>
+                  <span className="font-medium">{performanceStats.testAccuracy}%</span>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Experience</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Flame className="h-5 w-5" />
+                  Consistency Stats
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Current Level:</span>
-                  <span className="font-medium">{currentLevel}</span>
+                  <span className="text-sm">Current Streak:</span>
+                  <span className="font-medium">{consistencyStats.currentStreak} days</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Current XP:</span>
-                  <span className="font-medium">{currentXP}</span>
+                  <span className="text-sm">Total Days Active:</span>
+                  <span className="font-medium">{consistencyStats.totalDaysActive}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Next Level:</span>
-                  <span className="font-medium">{xpToNextLevel - currentXP} XP needed</span>
+                  <span className="text-sm">Avg. Daily Tests:</span>
+                  <span className="font-medium">{consistencyStats.averageDailyTests.toFixed(1)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm">Total XP:</span>
-                  <span className="font-medium">
-                    {((currentLevel - 1) * 100) + currentXP}
-                  </span>
+                  <span className="text-sm">Total Time Spent:</span>
+                  <span className="font-medium">{Math.round(userProgress.totalTimeSpent / 60)} min</span>
                 </div>
               </CardContent>
             </Card>
@@ -284,38 +471,118 @@ export default function Dashboard() {
 
         <TabsContent value="achievements" className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {userProgress.achievements && userProgress.achievements.map((achievementId, index) => {
-              const achievement = {
-                id: achievementId,
-                title: "Achievement Unlocked",
-                description: "You've earned an achievement",
-                icon: <Trophy className="h-5 w-5" />
-              }
+            {achievements.map((achievement) => {
+              const isUnlocked = userProgress.achievements.includes(achievement.id);
               return (
-                <Card key={index} className="overflow-hidden">
-                  <div className="bg-primary/10 p-4 flex justify-center">
-                    <div className="bg-background rounded-full p-3">
+                <Card 
+                  key={achievement.id} 
+                  className={`overflow-hidden transition-all duration-300 ${
+                    isUnlocked ? 'ring-2 ring-offset-2' : 'opacity-75'
+                  } ${
+                    achievement.tier === 'bronze' ? 'ring-amber-500' :
+                    achievement.tier === 'silver' ? 'ring-gray-400' :
+                    achievement.tier === 'gold' ? 'ring-yellow-500' :
+                    'ring-purple-500'
+                  }`}
+                >
+                  <div className={`p-4 flex justify-center ${
+                    achievement.tier === 'bronze' ? 'bg-amber-50' :
+                    achievement.tier === 'silver' ? 'bg-gray-50' :
+                    achievement.tier === 'gold' ? 'bg-yellow-50' :
+                    'bg-purple-50'
+                  }`}>
+                    <div className={`rounded-full p-3 ${
+                      achievement.tier === 'bronze' ? 'bg-amber-100' :
+                      achievement.tier === 'silver' ? 'bg-gray-100' :
+                      achievement.tier === 'gold' ? 'bg-yellow-100' :
+                      'bg-purple-100'
+                    }`}>
                       {achievement.icon}
                     </div>
                   </div>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-center">{achievement.title}</CardTitle>
+                    <div className="flex justify-center gap-2 mt-2">
+                      <Badge variant="outline" className="text-xs">
+                        {achievement.category}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {achievement.tier}
+                      </Badge>
+                    </div>
                   </CardHeader>
-                  <CardContent className="text-center text-sm text-muted-foreground">
-                    {achievement.description}
+                  <CardContent className="text-center space-y-2">
+                    <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                    {isUnlocked ? (
+                      <p className="text-green-600 dark:text-green-400 text-sm">Unlocked! +{achievement.xpReward} XP</p>
+                    ) : (
+                      <p className="text-gray-500 text-sm">Locked</p>
+                    )}
                   </CardContent>
                 </Card>
-              )
+              );
             })}
-            {(!userProgress.achievements || userProgress.achievements.length === 0) && (
-              <div className="col-span-full text-center py-8">
-                <Trophy className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <h3 className="text-lg font-medium">No Achievements Yet</h3>
-                <p className="text-muted-foreground">
-                  Complete tests and learn words to earn achievements
-                </p>
-              </div>
-            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="progress" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Learning Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm">Words Learned</span>
+                      <span className="text-sm font-medium">{learningStats.learnedWords}/{learningStats.totalWords}</span>
+                    </div>
+                    <Progress value={learningStats.completionPercentage} className="h-2" />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm">Level Progress</span>
+                      <span className="text-sm font-medium">{currentXP}/{xpToNextLevel} XP</span>
+                    </div>
+                    <Progress value={levelProgress} className="h-2" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Test Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm">Test Accuracy</span>
+                      <span className="text-sm font-medium">{performanceStats.testAccuracy}%</span>
+                    </div>
+                    <Progress value={performanceStats.testAccuracy} className="h-2" />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm">Streak Progress</span>
+                      <span className="text-sm font-medium">{consistencyStats.currentStreak} days</span>
+                    </div>
+                    <Progress 
+                      value={Math.min((consistencyStats.currentStreak / 30) * 100, 100)} 
+                      className="h-2" 
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>
