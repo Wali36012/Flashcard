@@ -37,6 +37,7 @@ import {
   Timer,
   RotateCcw,
   MemoryStick,
+  Clock,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
