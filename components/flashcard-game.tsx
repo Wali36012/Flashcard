@@ -31,6 +31,12 @@ import {
   SplitSquareVertical,
   Keyboard,
   Puzzle,
+  Mic,
+  MicOff,
+  Pencil,
+  Timer,
+  RotateCcw,
+  MemoryStick,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
@@ -53,6 +59,24 @@ type Achievement = {
   description: string
   icon: React.ReactNode
   condition: (userProgress: any) => boolean
+}
+
+interface SpacedRepetition {
+  wordId: number
+  nextReview: Date
+  interval: number
+  easeFactor: number
+  repetitions: number
+}
+
+interface LearningMode {
+  id: string
+  title: string
+  description: string
+  icon: React.ReactNode
+  difficulty: 'easy' | 'medium' | 'hard'
+  timeEstimate: number
+  xpReward: number
 }
 
 export default function FlashcardGame() {
@@ -85,6 +109,52 @@ export default function FlashcardGame() {
     checkAndUpdateStreak,
   } = useDatabase()
 
+  const [learningModes, setLearningModes] = useState<LearningMode[]>([
+    {
+      id: 'standard',
+      title: 'Standard Mode',
+      description: 'Learn words with traditional flashcards',
+      icon: <BookOpen className="h-6 w-6" />,
+      difficulty: 'easy',
+      timeEstimate: 10,
+      xpReward: 10
+    },
+    {
+      id: 'audio',
+      title: 'Audio Mode',
+      description: 'Learn through listening and pronunciation',
+      icon: <Volume2 className="h-6 w-6" />,
+      difficulty: 'medium',
+      timeEstimate: 12,
+      xpReward: 12
+    },
+    {
+      id: 'writing',
+      title: 'Writing Mode',
+      description: 'Practice writing and spelling',
+      icon: <Pencil className="h-6 w-6" />,
+      difficulty: 'hard',
+      timeEstimate: 15,
+      xpReward: 15
+    },
+    {
+      id: 'memory',
+      title: 'Memory Mode',
+      description: 'Test your memory with timed challenges',
+      icon: <MemoryStick className="h-6 w-6" />,
+      difficulty: 'hard',
+      timeEstimate: 15,
+      xpReward: 15
+    }
+  ])
+
+  const [spacedRepetition, setSpacedRepetition] = useState<SpacedRepetition[]>([])
+  const [isRecording, setIsRecording] = useState(false)
+  const [userPronunciation, setUserPronunciation] = useState<string>('')
+  const [showWritingPractice, setShowWritingPractice] = useState(false)
+  const [memoryGameWords, setMemoryGameWords] = useState<WordEntry[]>([])
+  const [memoryGameState, setMemoryGameState] = useState<'setup' | 'playing' | 'completed'>('setup')
+
   // Initialize data
   useEffect(() => {
     if (!isLoading && words.length > 0) {
@@ -92,6 +162,20 @@ export default function FlashcardGame() {
       checkAndUpdateStreak()
     }
   }, [isLoading, words, categoryFilter, checkAndUpdateStreak])
+
+  // Initialize spaced repetition data
+  useEffect(() => {
+    if (words.length > 0) {
+      const initialSpacedRepetition = words.map(word => ({
+        wordId: word.id,
+        nextReview: new Date(),
+        interval: 1,
+        easeFactor: 2.5,
+        repetitions: 0
+      }))
+      setSpacedRepetition(initialSpacedRepetition)
+    }
+  }, [words])
 
   // Check for achievements
   useEffect(() => {
@@ -253,6 +337,75 @@ export default function FlashcardGame() {
       condition: (progress) => progress.level >= 5,
     },
   ]
+
+  // Handle pronunciation recording
+  const handlePronunciation = async () => {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        const mediaRecorder = new MediaRecorder(stream)
+        const audioChunks: Blob[] = []
+
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunks.push(event.data)
+        }
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
+          const audioUrl = URL.createObjectURL(audioBlob)
+          setUserPronunciation(audioUrl)
+        }
+
+        mediaRecorder.start()
+        setIsRecording(true)
+
+        setTimeout(() => {
+          mediaRecorder.stop()
+          stream.getTracks().forEach(track => track.stop())
+          setIsRecording(false)
+        }, 3000)
+      } catch (error) {
+        console.error('Error accessing microphone:', error)
+      }
+    }
+  }
+
+  // Handle writing practice
+  const handleWritingPractice = (word: WordEntry) => {
+    setShowWritingPractice(true)
+    // Implement writing practice logic
+  }
+
+  // Handle memory game
+  const startMemoryGame = () => {
+    const shuffledWords = [...filteredWords].sort(() => Math.random() - 0.5).slice(0, 8)
+    setMemoryGameWords(shuffledWords)
+    setMemoryGameState('playing')
+  }
+
+  // Update spaced repetition data
+  const updateSpacedRepetition = (wordId: number, quality: number) => {
+    const wordData = spacedRepetition.find(item => item.wordId === wordId)
+    if (wordData) {
+      const newInterval = wordData.repetitions === 0 ? 1 :
+        wordData.repetitions === 1 ? 6 :
+        Math.round(wordData.interval * wordData.easeFactor)
+
+      const newEaseFactor = Math.max(1.3, wordData.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)))
+
+      const newSpacedRepetition = spacedRepetition.map(item => 
+        item.wordId === wordId ? {
+          ...item,
+          nextReview: new Date(Date.now() + newInterval * 24 * 60 * 60 * 1000),
+          interval: newInterval,
+          easeFactor: newEaseFactor,
+          repetitions: item.repetitions + 1
+        } : item
+      )
+
+      setSpacedRepetition(newSpacedRepetition)
+    }
+  }
 
   // Loading state
   if (isLoading) {
@@ -640,6 +793,116 @@ export default function FlashcardGame() {
           </motion.div>
         </AnimatePresence>
       )}
+
+      {/* Learning Modes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {learningModes.map((mode) => (
+          <Button
+            key={mode.id}
+            variant="outline"
+            className="h-32 flex flex-col items-center justify-center gap-2 p-4"
+            onClick={() => {
+              if (mode.id === 'memory') {
+                startMemoryGame()
+              } else {
+                setActiveTab('learn')
+              }
+            }}
+          >
+            <div className={`p-2 rounded-full ${
+              mode.difficulty === 'easy' ? 'bg-green-100' :
+              mode.difficulty === 'medium' ? 'bg-yellow-100' :
+              'bg-red-100'
+            }`}>
+              {mode.icon}
+            </div>
+            <div className="text-center">
+              <h3 className="font-medium">{mode.title}</h3>
+              <p className="text-sm text-muted-foreground">{mode.description}</p>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4" />
+              <span>{mode.timeEstimate} min</span>
+              <div className="h-4 w-px bg-border" />
+              <Zap className="h-4 w-4" />
+              <span>+{mode.xpReward} XP</span>
+            </div>
+          </Button>
+        ))}
+      </div>
+
+      {/* Memory Game */}
+      {memoryGameState === 'playing' && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {memoryGameWords.map((word, index) => (
+            <Card key={index} className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <h3 className="text-xl font-bold">{word.word}</h3>
+                  <p className="text-sm text-muted-foreground">{word.definition}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Writing Practice */}
+      {showWritingPractice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Writing Practice</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="text-lg">Write the word:</p>
+                  <p className="text-2xl font-bold">{filteredWords[currentWordIndex]?.word}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowWritingPractice(false)}>
+                    Cancel
+                  </Button>
+                  <Button>
+                    Submit
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Audio Practice */}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="outline"
+          onClick={() => speakWord(filteredWords[currentWordIndex]?.word || '')}
+        >
+          <Volume2 className="h-4 w-4 mr-2" />
+          Listen
+        </Button>
+        <Button
+          variant={isRecording ? "destructive" : "outline"}
+          onClick={handlePronunciation}
+        >
+          {isRecording ? (
+            <>
+              <MicOff className="h-4 w-4 mr-2" />
+              Stop Recording
+            </>
+          ) : (
+            <>
+              <Mic className="h-4 w-4 mr-2" />
+              Record Pronunciation
+            </>
+          )}
+        </Button>
+        {userPronunciation && (
+          <audio controls src={userPronunciation} className="ml-4" />
+        )}
+      </div>
 
       {/* Achievement Dialog */}
       <Dialog open={showAchievement !== null} onOpenChange={() => setShowAchievement(null)}>
