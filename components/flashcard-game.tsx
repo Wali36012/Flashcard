@@ -408,6 +408,66 @@ export default function FlashcardGame() {
     }
   }
 
+  // Render test component based on selected test type
+  const renderTestComponent = () => {
+    if (!testType) return null
+
+    const testProps = {
+      words: filteredWords,
+      difficulty,
+      onComplete: handleTestComplete,
+      onExit: () => {
+        setTestType(null)
+        setActiveTab("learn")
+      },
+    }
+
+    // Ensure these components are properly loaded
+    try {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center z-[100]">
+          <div className="fixed inset-0 bg-black/30" onClick={() => setTestType(null)}></div>
+          <div className="bg-background rounded-lg shadow-xl p-6 w-full max-w-4xl relative z-[101] max-h-[90vh] overflow-auto">
+            {testType === "multipleChoice" && <MultipleChoiceTest {...testProps} />}
+            {testType === "fillBlank" && <FillBlankTest {...testProps} />}
+            {testType === "matching" && <MatchingTest {...testProps} />}
+            {testType === "spelling" && <SpellingTest {...testProps} />}
+            {testType === "rapidFire" && <RapidFireTest {...testProps} />}
+            {testType === "crossword" && (
+              <div className="text-center p-8">
+                <Puzzle className="h-12 w-12 text-violet-500 mx-auto mb-4" />
+                <h3 className="text-xl font-bold">Crossword Puzzle</h3>
+                <p className="text-muted-foreground mt-2">Coming soon!</p>
+                <Button className="mt-4 bg-violet-600 hover:bg-violet-700" onClick={() => setTestType(null)}>
+                  Back to Tests
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    } catch (error) {
+      console.error("Error rendering test component:", error);
+      return (
+        <div className="fixed inset-0 flex items-center justify-center z-[100]">
+          <div className="fixed inset-0 bg-black/30" onClick={() => setTestType(null)}></div>
+          <div className="bg-background rounded-lg shadow-xl p-6 w-full max-w-md relative z-[101]">
+            <div className="text-center p-4">
+              <XCircle className="h-12 w-12 text-rose-500 mx-auto mb-4" />
+              <h3 className="text-xl font-bold">Test Component Error</h3>
+              <p className="text-muted-foreground mt-2">
+                There was a problem loading this test component. Please try again later.
+              </p>
+              <Button className="mt-4" onClick={() => setTestType(null)}>
+                Back to Flashcards
+              </Button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+  }
+
   // Loading state
   if (isLoading) {
     return (
@@ -429,47 +489,6 @@ export default function FlashcardGame() {
         </Button>
       </div>
     )
-  }
-
-  // Render test component based on selected test type
-  const renderTestComponent = () => {
-    if (!testType) return null
-
-    const testProps = {
-      words: filteredWords,
-      difficulty,
-      onComplete: handleTestComplete,
-      onExit: () => {
-        setTestType(null)
-        setActiveTab("learn")
-      },
-    }
-
-    switch (testType) {
-      case "multipleChoice":
-        return <MultipleChoiceTest {...testProps} />
-      case "fillBlank":
-        return <FillBlankTest {...testProps} />
-      case "matching":
-        return <MatchingTest {...testProps} />
-      case "spelling":
-        return <SpellingTest {...testProps} />
-      case "rapidFire":
-        return <RapidFireTest {...testProps} />
-      case "crossword":
-        return (
-          <div className="text-center p-8">
-            <Puzzle className="h-12 w-12 text-violet-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold">Crossword Puzzle</h3>
-            <p className="text-muted-foreground mt-2">Coming soon!</p>
-            <Button className="mt-4 bg-violet-600 hover:bg-violet-700" onClick={() => setTestType(null)}>
-              Back to Tests
-            </Button>
-          </div>
-        )
-      default:
-        return null
-    }
   }
 
   return (
@@ -563,38 +582,53 @@ export default function FlashcardGame() {
         </div>
       )}
 
-      {/* Test Selector */}
-      {showTestSelector && (
-        <TestSelector
-          onSelectTest={handleSelectTest}
-          onCancel={() => {
-            setShowTestSelector(false)
-            setActiveTab("learn")
-          }}
-        />
+      {/* Take a Test button */}
+      {!isFlipped && !testType && (
+        <Button 
+          onClick={() => setShowTestSelector(true)} 
+          className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50"
+          variant="default"
+        >
+          <Zap className="h-4 w-4 mr-2" /> Take a Test
+        </Button>
       )}
 
+      {/* Test Selector */}
+      <div className="z-[100] relative">
+        {showTestSelector && (
+          <TestSelector
+            onSelectTest={handleSelectTest}
+            onCancel={() => {
+              setShowTestSelector(false)
+              setActiveTab("learn")
+            }}
+          />
+        )}
+      </div>
+
       {/* Test Results */}
-      {showTestResults && (
-        <TestResults
-          score={testScore}
-          totalPossible={testTotalPossible}
-          timeSpent={testTimeSpent}
-          testType={testType || "multipleChoice"}
-          onRetry={() => {
-            setShowTestResults(false)
-          }}
-          onNewTest={() => {
-            setShowTestResults(false)
-            setShowTestSelector(true)
-          }}
-          onExit={() => {
-            setShowTestResults(false)
-            setTestType(null)
-            setActiveTab("learn")
-          }}
-        />
-      )}
+      <div className="z-[100] relative">
+        {showTestResults && (
+          <TestResults
+            score={testScore}
+            totalPossible={testTotalPossible}
+            timeSpent={testTimeSpent}
+            testType={testType || "multipleChoice"}
+            onRetry={() => {
+              setShowTestResults(false)
+            }}
+            onNewTest={() => {
+              setShowTestResults(false)
+              setShowTestSelector(true)
+            }}
+            onExit={() => {
+              setShowTestResults(false)
+              setTestType(null)
+              setActiveTab("learn")
+            }}
+          />
+        )}
+      </div>
 
       {/* Test Component */}
       {activeTab === "test" && testType && !showTestSelector && !showTestResults && renderTestComponent()}
