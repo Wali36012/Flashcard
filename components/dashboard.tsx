@@ -299,7 +299,6 @@ export default function Dashboard() {
   })
   const [selectedLearningPath, setSelectedLearningPath] = useState<string | null>(null)
   const [communityChallenges, setCommunityChallenges] = useState<CommunityChallenge[]>([])
-  const [badges, setBadges] = useState<Badge[]>([])
   const [showHeatmap, setShowHeatmap] = useState(true)
   const [selectedLearningMode, setSelectedLearningMode] = useState<string | null>(null)
   const [spacedRepetition, setSpacedRepetition] = useState<SpacedRepetition[]>([])
@@ -608,7 +607,7 @@ export default function Dashboard() {
     Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))
   )
 
-  // Generate badges
+  // Achievements for unlocking
   const achievements: Achievement[] = [
     {
       id: "streak_7",
@@ -1128,27 +1127,10 @@ export default function Dashboard() {
               return (
                 <Card 
                   key={achievement.id} 
-                  className={`overflow-hidden transition-all duration-300 ${
-                    isUnlocked ? 'ring-2 ring-offset-2' : 'opacity-75'
-                  } ${
-                    achievement.tier === 'bronze' ? 'ring-amber-500' :
-                    achievement.tier === 'silver' ? 'ring-gray-400' :
-                    achievement.tier === 'gold' ? 'ring-yellow-500' :
-                    'ring-purple-500'
-                  }`}
+                  className="overflow-hidden"
                 >
-                  <div className={`p-4 flex justify-center ${
-                    achievement.tier === 'bronze' ? 'bg-amber-50' :
-                    achievement.tier === 'silver' ? 'bg-gray-50' :
-                    achievement.tier === 'gold' ? 'bg-yellow-50' :
-                    'bg-purple-50'
-                  }`}>
-                    <div className={`rounded-full p-3 ${
-                      achievement.tier === 'bronze' ? 'bg-amber-100' :
-                      achievement.tier === 'silver' ? 'bg-gray-100' :
-                      achievement.tier === 'gold' ? 'bg-yellow-100' :
-                      'bg-purple-100'
-                    }`}>
+                  <div className="p-4 flex justify-center bg-muted">
+                    <div className="rounded-full p-3 bg-background">
                       {achievement.icon}
                     </div>
                   </div>
@@ -1158,17 +1140,14 @@ export default function Dashboard() {
                       <Badge variant="outline" className="text-xs">
                         {achievement.category}
                       </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {achievement.tier}
-                      </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="text-center space-y-2">
+                  <CardContent className="text-center">
                     <p className="text-sm text-muted-foreground">{achievement.description}</p>
                     {isUnlocked ? (
-                      <p className="text-green-600 dark:text-green-400 text-sm">Unlocked! +{achievement.xpReward} XP</p>
+                      <p className="text-green-600 dark:text-green-400 text-sm mt-2">Unlocked!</p>
                     ) : (
-                      <p className="text-gray-500 text-sm">Locked</p>
+                      <p className="text-gray-500 text-sm mt-2">Locked</p>
                     )}
                   </CardContent>
                 </Card>
@@ -1718,17 +1697,14 @@ export default function Dashboard() {
                       <Badge variant="outline" className="text-xs">
                         {achievement.category}
                       </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {achievement.tier}
-                      </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="text-center space-y-2">
+                  <CardContent className="text-center">
                     <p className="text-sm text-muted-foreground">{achievement.description}</p>
                     {isUnlocked ? (
-                      <p className="text-green-600 dark:text-green-400 text-sm">Unlocked! +{achievement.xpReward} XP</p>
+                      <p className="text-green-600 dark:text-green-400 text-sm mt-2">Unlocked!</p>
                     ) : (
-                      <p className="text-gray-500 text-sm">Locked</p>
+                      <p className="text-gray-500 text-sm mt-2">Locked</p>
                     )}
                   </CardContent>
                 </Card>
